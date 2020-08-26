@@ -114,6 +114,13 @@
                             <p class="text-left">Update</p>
                         </a>
                     </li>
+
+                    <li class="{{ Request::is('trans') ? 'active' : '' }}">
+                        <a href="{{ url('/trans') }}" class="simple-text">
+                            {{-- <i class="pe-7s-pen"></i> --}}
+                            <p class="text-left">Transmit</p>
+                        </a>
+                    </li>
                     
                 </ul>
     	    </div>
@@ -206,6 +213,9 @@
 
     <!-- Insert -->
     <script src="{{ asset('js/insert.js') }}"></script>
+
+    <!-- Loading -->
+    <script src="{{ asset('js/loading.js') }}"></script>
 
     {{-- Check if connected script --}}
     <script type="text/javascript" src="{{ asset('js/check_conn.js') }}"></script>

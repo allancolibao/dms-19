@@ -110,5 +110,10 @@ Route::any('updatef60/{id}', 'FoodRecordController@updatef60');
 // Count
 Route::get('count', 'FoodRecordController@count');
 
+// Data Trasmission Route
+Route::get('trans', 'DataTransmissionController@index')->name('data-trans');
+Route::any('/search-area','DataTransmissionController@searchArea')->name('search-area');
+Route::get('trans-hh/{eacode}', 'DataTransmissionController@transHousehold')->name('trans-hh');
+Route::get('trans-indiv/{eacode}', 'DataTransmissionController@transIndividual')->name('trans-indiv');
 
 
