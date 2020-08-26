@@ -6,7 +6,28 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransmissionLog extends Model
 {
-    protected $table = 'transmissionlog';
+    /**
+     * Name of the table.
+     *
+     * 
+     */
+    protected $table = 'logs';
 
-    protected $fillable = ['name', 'areaname', 'status','dstarted','dfinished'];
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [
+        'eacode',
+        'hcn',
+        'shsn',
+        'full_name',
+        'f60_count',
+        'f61_count',
+        'f63_count',
+        'f71_count',
+        'f76_count',
+    ];
 }

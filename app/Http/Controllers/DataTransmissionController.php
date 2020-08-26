@@ -5,30 +5,44 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Input;
 use Validator;
-use DB;
 use App\LocalSurveyAreas;
+use App\TransmissionLog;
 use App\Booklet10;
-use App\F60;
 use App\Members;
 use App\Booklet9;
+use App\F60;
+use App\F76;
+use DB;
 
 class DataTransmissionController extends Controller
 {
-     /**
-     * Create a new controller instance.
-     *
-     * @return void
+    /**
+     * Check the connection
      */
-    public function __construct()
-    {
-        $this->middleware('auth');
+    public function checkConnection(){
+
+        $connected = @fsockopen("www.google.com", 80); 
+
+        if(!$connected){
+            return false;
+        }
+        return true;
     }
-    
-  
+
+    /**
+     * Handle the index page
+     * 
+     * 
+     */
     public function index()
     {
+        $conn = $this->checkConnection();
+
+         if(!$conn) {
+            return view('error.no-internet');
+         }
         
-        return view('dashboard.trans');
+        return view('trans.index');
     }
 
 
@@ -42,92 +56,134 @@ class DataTransmissionController extends Controller
         
         $rules = array
         (
-            'key' => 'required|min:4|max:12'
+            'key' => 'required|digits:12'
         );
     
         $validator = Validator::make ( Input::all(), $rules);
         if ($validator->fails())
-        return redirect('/trans')->with('error', 'Please re-enter the eacode [ 4-12 digits required ], Thank you');
+            return redirect('/trans')->with('error', 'Please re-enter the 12 digits eacode, Thank you');
         
         else 
         {
-        $key = Input::get ('key');
+            $key = Input::get ('key');
 
-        $areas = Localsurveyareas::where('eacode','LIKE','%'.$key.'%')->get();
-
-        return view('dashboard.trans_area',compact('areas'));
+            return redirect()->route('get.trans-redirect', [$key]);
         }   
     }
 
-    public function transHousehold($eacode)
+
+    /**
+     * Get the eacode based on the input of the user
+     */
+    public function getTransRedirect($eacode)
     {
-        
-        $connected = @fsockopen("www.google.com", 80); 
-                                       
-        if ($connected){
 
-            $is_conn = true; 
+        $areas = LocalSurveyAreas::where('eacode', $eacode)->get();
 
-            // Get data and send it to the live server f60
-            $f60 = F60::where('eacode', $eacode)->exclude('id')->get()->toArray();
-            $insert_f60 = DB::connection('mysqlsec')->table('d_f60')->insertIgnore($f60);
+        return view('trans.trans-area', compact('areas'));
 
-            
-            // Get data and send it to the live server f61
-            $f61 = Members::where('eacode', $eacode)->exclude('id')->get()->toArray();
-            $insert_f61 = DB::connection('mysqlsec')->table('d_f61')->insertIgnore($f61);
-
-            // dd($f61);
-
-            // Get data and send it to the live server f63
-            $f63 = Booklet9::where('eacode',$eacode)->exclude('id')->get()->toArray();
-            $insert_f63 = DB::connection('mysqlsec')->table('d_f63')->insertIgnore($f63);
-            
-
-            return redirect('/trans')->with('success', 'Data trasmitted successfully!');
-
-
-            fclose($connected);
-
-        } else {
-
-            $is_conn = false; 
-            
-            return redirect('/trans')->with('error', 'Please check your internet connection!');
-
-        }
     }
 
+
+    /**
+     * 
+     * Household Level Data Transmission
+     * 
+     */
+    public function transHousehold($eacode)
+    {
+        $conn = $this->checkConnection();
+
+         if(!$conn) {
+            return view('error.no-internet');
+         }
+         
+
+        // Get data and send it to the live server
+
+        $f60 = F60::where('eacode', $eacode)->exclude('id')->get()->toArray();
+        $insertF60 = F60::on('mysqltrd')->insertIgnore($f60);
+
+
+        $f61 = Members::where('eacode', $eacode)->exclude('id')->get()->toArray();
+        $insertF61 = Members::on('mysqltrd')->insertIgnore($f61);
+
+ 
+        $f63 = Booklet9::where('eacode',$eacode)->exclude('id')->get()->toArray();
+        $insertF63 = Booklet9::on('mysqltrd')->insertIgnore($f63);
+        
+
+        return redirect()->route('get.trans-redirect', [$eacode])->with('success', 'Household Data trasmitted successfully!');
+
+
+    }
+
+
+    /**
+     * 
+     * Individual Level Data Transmission
+     * 
+     */
     public function transIndividual($eacode)
     {
-        
-        $connected = @fsockopen("www.google.com", 80); 
-                                       
-        if ($connected){
+        $conn = $this->checkConnection();
 
-            $is_conn = true;    
-
-            // Get data and send it to the live server f71
-            $f71 = Booklet10::where('eacode', $eacode)->exclude('id')->get()->toArray();
-
-            // dd($f71);
-            
-            $insert_f71 = DB::connection('mysqlsec')->table('d_f71')->insertIgnore($f71);
+         if(!$conn) {
+            return view('error.no-internet');
+         }
 
 
-            return redirect('/trans')->with('success', 'Data trasmitted successfully!');
+         // Get data and send it to the live server
+
+         $f71 = Booklet10::where('eacode', $eacode)->exclude('id')->get()->toArray();
+         $insertF71 = Booklet10::on('mysqltrd')->insertIgnore($f71);
+ 
+         $f76 = F76::where('eacode', $eacode)->exclude('id')->get()->toArray();
+         $insertF76 = F76::on('mysqltrd')->insertIgnore($f76);
 
 
-            fclose($connected);
+        return redirect()->route('get.trans-redirect', [$eacode])->with('success', 'Individual Data trasmitted successfully!');
 
-        } else {
-
-            $is_conn = false; 
+    }
 
 
-            return redirect('/trans')->with('error', 'Please check your internet connection!');
+    /**
+     * 
+     * All Level Data Transmission
+     * 
+     */
+    public function transAll($eacode)
+    {
+        $conn = $this->checkConnection();
 
-        }
+         if(!$conn) {
+            return view('error.no-internet');
+         }
+         
+
+         // Get data and send it to the live server
+
+        $f60 = F60::where('eacode', $eacode)->exclude('id')->get()->toArray();
+        $insertF60 = F60::on('mysqltrd')->insertIgnore($f60);
+
+
+        $f61 = Members::where('eacode', $eacode)->exclude('id')->get()->toArray();
+        $insertF61 = Members::on('mysqltrd')->insertIgnore($f61);
+
+ 
+        $f63 = Booklet9::where('eacode',$eacode)->exclude('id')->get()->toArray();
+        $insertF63 = Booklet9::on('mysqltrd')->insertIgnore($f63);
+
+
+        $f71 = Booklet10::where('eacode', $eacode)->exclude('id')->get()->toArray();
+        $insertF71 = Booklet10::on('mysqltrd')->insertIgnore($f71);
+
+        $f76 = F76::where('eacode', $eacode)->exclude('id')->get()->toArray();
+        $insertF76 = F76::on('mysqltrd')->insertIgnore($f76);
+
+
+        return redirect()->route('get.trans-redirect', [$eacode])->with('success', 'All Data trasmitted successfully!');
+
     }
 
 }

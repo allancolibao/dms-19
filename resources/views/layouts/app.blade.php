@@ -9,7 +9,7 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'DvMS') }}</title>
+    <title>{{ config('app.name', 'DVMS-2019') }}</title>
 
     <!-- Styles -->
     <link rel="stylesheet" href="{{asset('css/bootstrap.min.css')}}">
@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="{{asset('css/notif.css')}}">
     <link rel="stylesheet" href="{{asset('css/icon.css')}}">
     <link rel="stylesheet" href="{{asset('css/font.min.css')}}">
-    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
 </head>
 <body>
@@ -36,43 +35,8 @@
 
                     <!-- Branding Image -->
                     <a class="navbar-brand" href="{{ url('/') }}">
-                        {{ config('app.name', 'DvMS') }}
+                        {{ config('app.name', 'DVMS-2019') }}
                     </a>
-                </div>
-
-                <div class="collapse navbar-collapse" id="app-navbar-collapse">
-                    <!-- Left Side Of Navbar -->
-                    <ul class="nav navbar-nav">
-                        &nbsp;
-                    </ul>
-
-                    <!-- Right Side Of Navbar -->
-                    <ul class="nav navbar-nav navbar-right">
-                        <!-- Authentication Links -->
-                        @guest
-                            <li><a href="{{ route('login') }}">Login</a></li>
-                        @else
-                            <li class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" v-pre>
-                                    {{ Auth::user()->name }} <span class="caret"></span>
-                                </a>
-
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a href="{{ route('logout') }}"
-                                            onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                            Logout
-                                        </a>
-
-                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                                            {{ csrf_field() }}
-                                        </form>
-                                    </li>
-                                </ul>
-                            </li>
-                        @endguest
-                    </ul>
                 </div>
             </div>
         </nav>
@@ -84,8 +48,6 @@
     <!-- Core -->
     <script src="{{ asset('js/app.js') }}"></script>
     <script src="{{ asset('js/dashboard.js') }}"></script>
-
-    <script src="{{ asset('js/date.js') }}"></script>
 
     <!-- Delete -->
     <script src="{{ asset('js/delete.js') }}"></script>

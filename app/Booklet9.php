@@ -3,9 +3,12 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Staudenmeir\LaravelUpsert\Eloquent\HasUpsertQueries;
 
 class Booklet9 extends Model
 {
+    use HasUpsertQueries;
+    
     protected $table = 'd_f63';
 
     /**

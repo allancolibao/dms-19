@@ -56,8 +56,8 @@ return [
 
         'mysqlsec' => [
             'driver' => 'mysql',
-            'host' => env('DB_HOST_SEC', '202.90.141.86'),
-            'port' => env('DB_PORT_SEC', '3674'),
+            'host' => env('DB_HOST_SEC', '127.0.0.1'),
+            'port' => env('DB_PORT_SEC', '3306'),
             'database' => env('DB_DATABASE_SEC', 'forge'),
             'username' => env('DB_USERNAME_SEC', 'forge'),
             'password' => env('DB_PASSWORD_SEC', ''),
@@ -69,6 +69,23 @@ return [
             'strict' => true,
             'engine' => null,
         ],
+
+        'mysqltrd' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST_TRD', '127.0.0.1'),
+            'port' => env('DB_PORT_TRD', '3306'),
+            'database' => env('DB_DATABASE_TRD', 'forge'),
+            'username' => env('DB_USERNAME_TRD', 'forge'),
+            'password' => env('DB_PASSWORD_TRD', ''),
+            'unix_socket' => env('DB_SOCKET_TRD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
 
         'pgsql' => [
             'driver' => 'pgsql',

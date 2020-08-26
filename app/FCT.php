@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class FCT extends Model
 {
-    protected $table = 'xfctx2017';
+    protected $table = 'fct';
 }

@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Str;
 use App\http\Requests;
-use App\TransmissionLog;
 use App\Encoding;
 use App\Booklet9;
 use App\Members;
@@ -14,6 +13,7 @@ use App\Booklet10;
 use App\F60;
 use App\FCT;
 use App\FNO;
+use Exception;
 use Validator;
 use Response;
 use DB;
@@ -22,294 +22,271 @@ use Carbon\Carbon;
 
 class FoodRecordController extends Controller
 {
-      /**
-     * Create a new controller instance.
-     *
-     * @return void
+    /**
+     * Show the update page page
      */
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-    
-  
     public function index()
     {
-        
-        return view('dashboard.foodrecord');
+        return view('food-record.index');
     }
 
 
-    // Search function //
+    /**
+     * Search per EACODE
+     */
     public function searchFoodRecord(Request $request)
     {
         
         $rules = array
         (
-            'key' => 'required|min:4|max:12'
+            'key' => 'required|digits:12'
         );
     
         $validator = Validator::make ( Input::all(), $rules);
-        if ($validator->fails())
-        return redirect('/foodrecord')->with('error', 'Please re-enter the eacode [ 4-12 digits required ], Thank you');
+
+        if ($validator->fails()) {
+
+            return redirect()->back()->with('error', 'Please re-enter the eacode it must be a number and 12 characters');
         
-        else 
-        {
-        $key = Input::get ('key');
+        } else {
 
-        $foodweighing = Booklet9::where('eacode','LIKE','%'.$key.'%')->distinct()->get(['eacode','hcn','shsn']);
-        $count = Booklet9::where('eacode','LIKE','%'.$key.'%')->distinct()->get(['eacode','hcn','shsn'])->count();
+            $key = Input::get ('key');
 
-        $foodrecall = DB::table('d_f71')
-        ->join('d_f11', function ($join) {
-            $join->on('d_f11.eacode', '=', 'd_f71.eacode')
-                 ->On('d_f11.hcn', '=', 'd_f71.hcn')
-                 ->On('d_f11.shsn', '=', 'd_f71.shsn')
-                 ->On('d_f11.MEMBER_CODE', '=', 'd_f71.MEMBER_CODE');
-                })
-                 ->where('d_f71.eacode','LIKE','%'.$key.'%')
-                 ->distinct()
-                 ->get(['d_f71.eacode','d_f71.hcn','d_f71.shsn','d_f71.MEMBER_CODE','d_f11.SURNAME','d_f11.GIVENNAME','d_f11.AGE']);
-
-        $countrecall = Booklet10::where('eacode','LIKE','%'.$key.'%')->distinct()->get(['eacode','hcn','shsn','MEMBER_CODE'])->count();
-
-        $form61 = Members::where('eacode','LIKE','%'.$key.'%')
-                ->orderBy('hcn', 'ASC')
-                ->orderBy('shsn', 'ASC')
-                ->orderBy('MEMBER_CODE', 'ASC')
-                ->get();
-
-        $countmem = Members::where('eacode','LIKE','%'.$key.'%')->distinct()->get(['eacode','hcn','shsn','MEMBER_CODE'])->count();
-
-        return view('dashboard.searchfoodrecord',compact('count','foodweighing','foodrecall','countrecall','form61','countmem'));
+            return redirect()->route('search.key', [$key]);
         }   
     }
 
 
-    // Get the members of the hh //
-    public function members($eacode, $hcn, $shsn)
+    /**
+     * Get the household based on the EACODE
+     */
+    public function searchFoodRecordRedirect($key)
+    {
+        $households = Encoding::where('eacode', 'LIKE','%'.$key.'%')
+                        ->distinct()
+                        ->get(['eacode','hcn','shsn']);
+
+        $count = $households->count();
+
+        return view('food-record.search-food-record', compact('households','count'));
+    }
+
+
+
+     /**
+     * Get the individual food recall
+     */
+    public function individual($eacode, $hcn, $shsn)
     {       
 
-      
-        $countrecall = Booklet10::where('eacode','LIKE','%'.$eacode.'%')
-                                ->where('hcn','LIKE','%'.$hcn.'%')
-                                ->where('shsn','LIKE','%'.$shsn.'%')
-                                ->distinct()
-                                ->get(['eacode','hcn','shsn','MEMBER_CODE'])
-                                ->count();
+        $hhead = DB::table('d_f11')
+                 ->select('SURNAME','GIVENNAME','AGE')
+                 ->where('eacode', $eacode)
+                 ->where('hcn', $hcn)
+                 ->where('shsn', $shsn)
+                 ->where('MEMBER_CODE', '01')
+                 ->first(); 
 
         $foodrecall = DB::table('d_f71')
-        ->join('d_f11', function ($join) {
+            ->join('d_f11', function ($join) {
             $join->on('d_f11.eacode', '=', 'd_f71.eacode')
                  ->On('d_f11.hcn', '=', 'd_f71.hcn')
                  ->On('d_f11.shsn', '=', 'd_f71.shsn')
                  ->On('d_f11.MEMBER_CODE', '=', 'd_f71.MEMBER_CODE');
                 })
-                 ->where('d_f71.eacode','LIKE','%'.$eacode.'%')
-                 ->where('d_f71.hcn','LIKE','%'.$hcn.'%')
-                 ->where('d_f71.shsn','LIKE','%'.$shsn.'%')
+                 ->where('d_f71.eacode', $eacode)
+                 ->where('d_f71.hcn', $hcn)
+                 ->where('d_f71.shsn', $shsn)
                  ->distinct()
                  ->get(['d_f71.eacode','d_f71.hcn','d_f71.shsn','d_f71.MEMBER_CODE','d_f11.SURNAME','d_f11.GIVENNAME','d_f11.AGE']);
 
-        $members = Booklet10::where('eacode','LIKE','%'.$eacode.'%')
-                 ->where('hcn','LIKE','%'.$hcn.'%')
-                 ->where('shsn','LIKE','%'.$shsn.'%')
-                 ->distinct()->get(['eacode','hcn','shsn','MEMBER_CODE'])->count();   
-                 
-        $hhead = DB::table('d_f11')
-                 ->select('SURNAME','GIVENNAME','AGE')
-                 ->where('eacode','LIKE','%'.$eacode.'%')
-                 ->where('hcn','LIKE','%'.$hcn.'%')
-                 ->where('shsn','LIKE','%'.$shsn.'%')
-                 ->where('MEMBER_CODE','=','01')
-                 ->first();           
-
-        return view('dashboard.member',compact('foodrecall','members','eacode','hcn','shsn','hhead','countrecall'));
+        $indivCount = $foodrecall->count();   
+      
+        return view('food-recall.index', compact('foodrecall', 'indivCount','eacode','hcn','shsn','hhead'));
     }
 
 
-    // Get the information of household member //
+    /**
+     * Get the specific individual food recall
+     */
     public function recall($eacode, $hcn, $shsn, $member, $givenname ,$surname, $age)
     {       
-        return view('dashboard.mem_recall',compact( 'eacode','hcn','shsn','member','givenname','surname','age'));
+        return view('food-recall.indiv-recall',compact( 'eacode','hcn','shsn','member','givenname','surname','age'));
     }
 
 
-    // Fetch recall day 1 or 2 based on selection //
-    public function memrecall($eacode, $hcn, $shsn, $member, $givenname ,$surname, $age, $recday)
+    /**
+     * Fetch recall day 1 or 2 based on selection
+     */
+    public function indivRecallEdit($eacode, $hcn, $shsn, $member, $givenname ,$surname, $age, $recday)
     {    
         $fct = FCT::all();
 
-        $lines = Booklet10::where('eacode','LIKE','%'.$eacode.'%')
-                            ->where('hcn','LIKE','%'.$hcn.'%')
-                            ->where('shsn','LIKE','%'.$shsn.'%')
-                            ->where('MEMBER_CODE','LIKE','%'.$member.'%')
-                            ->where('RECDAY','LIKE','%'.$recday.'%')
+        $lines = Booklet10::where('eacode', $eacode)
+                            ->where('hcn', $hcn)
+                            ->where('shsn', $shsn)
+                            ->where('MEMBER_CODE',$member)
+                            ->where('RECDAY', $recday)
                             ->orderByRaw('LENGTH(LINENO)', 'ASC')
                             ->orderBy('LINENO', 'ASC')
                             ->get();
 
-        $l1 = Booklet10::where('eacode','LIKE','%'.$eacode.'%')
-                            ->where('hcn','LIKE','%'.$hcn.'%')
-                            ->where('shsn','LIKE','%'.$shsn.'%')
-                            ->where('MEMBER_CODE','LIKE','%'.$member.'%')
-                            ->where('RECDAY','LIKE','%'.$recday.'%')
+        $l1 = Booklet10::where('eacode', $eacode)
+                            ->where('hcn', $hcn)
+                            ->where('shsn', $shsn)
+                            ->where('MEMBER_CODE', $member)
+                            ->where('RECDAY', $recday)
                             ->where('LINENO', '=' ,'01')
-                            ->orWhere('eacode','LIKE','%'.$eacode.'%')
-                            ->where('hcn','LIKE','%'.$hcn.'%')
-                            ->where('shsn','LIKE','%'.$shsn.'%')
-                            ->where('MEMBER_CODE','LIKE','%'.$member.'%')
-                            ->where('RECDAY','LIKE','%'.$recday.'%')
+                            ->orWhere('eacode', $eacode)
+                            ->where('hcn', $hcn)
+                            ->where('shsn', $shsn)
+                            ->where('MEMBER_CODE', $member)
+                            ->where('RECDAY', $recday)
                             ->where('LINENO', '=' ,'1')
                             ->get();
 
-        return view('dashboard.mem_recall_edit',compact('fct','eacode','hcn','shsn','member','givenname','surname','age','recday','lines','l1'));
+        return view('food-recall.indiv-recall-edit', compact('fct','eacode','hcn','shsn','member','givenname','surname','age','recday','lines','l1'));
     }
 
 
-    // Retrieve recall line no data for edit //
-    public function editline($eacode, $hcn, $shsn, $member, $givenname ,$surname, $age, $recday, $id)
-    {
-        $fct = DB::table('xfctx2017')->select('foodcode', 'fooddesc')->get();
-        $line = Booklet10::find ($id);
-        return view('dashboard.edit_line', compact('line','id', 'fct','eacode','hcn','shsn','member','givenname','surname','age','recday'));
-    }
 
-
-     // Insert Food record  line no data for edit //
+    /**
+     * get insert f72 food recall line number page
+     */
      public function insertFoodRecall($eacode, $hcn, $shsn, $member, $givenname ,$surname, $age, $recday)
      {
-         $fct = DB::table('xfctx2017')->select('foodcode', 'fooddesc')->get();
-         return view('dashboard.insert_food_recall', compact('fct','eacode','hcn','shsn','member','givenname','surname','age','recday'));
+         $fct = DB::table('fct')->select('foodcode', 'fooddesc')->get();
+         return view('food-recall.insert-food-recall', compact('fct','eacode','hcn','shsn','member','givenname','surname','age','recday'));
      }
 
 
-    // Insert Form 7.2  line no //
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * insert f72 food recall line number
      */
     public function insertRecall(Request $request)
     {
-        $line = new Booklet10;
-        $line->eacode = $request->get('eacode');
-        $line->hcn = $request->get('hcn');
-        $line->shsn = $request->get('shsn');
-        $line->MEMBER_CODE = $request->get('MEMBER_CODE');
-        $line->RECDAY = $request->get('RECDAY');
-        $line->LINENO = $request->get("LINENO");
-        $line->FOOD_ITEM = $request->get("FOOD_ITEM");
-        $line->FOODDESC = $request->get("FOODDESC");
-        $line->FOODBRND = $request->get("FOODBRND");
-        $line->FOODMAINING = $request->get("FOODMAINING");
-        $line->FOODBRNDCD = $request->get("FOODBRNDCD");
-        $line->FVS = $request->get("FVS");
-        $line->ISFORTIFIED = $request->get("ISFORTIFIED");
-        $line->VITA = $request->get("VITA");
-        $line->IRON = $request->get("IRON");
-        $line->OTHF = $request->get("OTHF");
-        $line->MEALCD = $request->get("MEALCD");
-        $line->RFCODE = $request->get("RFCODE");
-        $line->FOODEX = $request->get("FOODEX");
-        $line->FIC = Str::substr($request->get('FOODCODE'), 0, 4);
-        $line->FOODCODE = $request->get("FOODCODE");
-        $line->FOODWEIGHT = $request->get("FOODWEIGHT");
-        $line->RCC = $request->get("RCC");
-        $line->CMC = $request->get("CMC");
-        $line->SUPCODE = $request->get("SUPCODE");
-        $line->SRCCODE = $request->get("SRCCODE");
-        $line->OTH_SRC = $request->get("OTH_SRC");
-        $line->CPC = $request->get("CPC");
-        $line->UNITCOST = $request->get("UNITCOST");
-        $line->UNITWGT = $request->get("UNITWGT");
-        $line->UNITMEAS = $request->get("UNITMEAS");
-        $line->save();
+
+        $foodRecall = [
+            'eacode' => $request['eacode'],
+            'hcn' => $request['hcn'],
+            'shsn' => $request['shsn'],
+            'MEMBER_CODE' => $request['MEMBER_CODE'],
+            'RECDAY' => $request['RECDAY'],
+            'LINENO' => $request["LINENO"],
+            'FOOD_ITEM' => $request["FOOD_ITEM"],
+            'FOODDESC' => $request["FOODDESC"],
+            'FOODBRND' => $request["FOODBRND"],
+            'FOODMAINING' => $request["FOODMAINING"],
+            'FOODBRNDCD' => $request["FOODBRNDCD"],
+            'FVS' => $request["FVS"],
+            'ISFORTIFIED' => $request["ISFORTIFIED"],
+            'VITA' => $request["VITA"],
+            'IRON' => $request["IRON"],
+            'OTHF' => $request["OTHF"],
+            'MEALCD' => $request["MEALCD"],
+            'RFCODE' => $request["RFCODE"],
+            'FOODEX' => $request["FOODEX"],
+            'FIC' => Str::substr($request['FOODCODE'], 0, 4),
+            'FOODCODE' => $request["FOODCODE"],
+            'FOODWEIGHT' => $request["FOODWEIGHT"],
+            'RCC' => $request["RCC"],
+            'CMC' => $request["CMC"],
+            'SUPCODE' => $request["SUPCODE"],
+            'SRCCODE' => $request["SRCCODE"],
+            'OTH_SRC' => $request["OTH_SRC"],
+            'CPC' => $request["CPC"],
+            'UNITCOST' => $request["UNITCOST"],
+            'UNITWGT' => $request["UNITWGT"],
+            'UNITMEAS' => $request["UNITMEAS"],
+        ];
+
+        Booklet10::insertIgnore($foodRecall);
 
         return redirect()->back()->with('success', 'Data successfully inserted');
         
      }
 
 
-    // Update Form 7.2  line no //
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     /**
+     * update f72 food recall line number
      */
-    public function update(Request $request, $id)
+    public function updateRecall(Request $request, $id)
     {
-        // $line = Booklet10::find($id);
-        // $line->LINENO = $request->get("LINENO");
-        // $line->FOOD_ITEM = $request->get("FOOD_ITEM");
-        // $line->FOODDESC = $request->get("FOODDESC");
-        // $line->FOODBRND = $request->get("FOODBRND");
-        // $line->FOODMAINING = $request->get("FOODMAINING");
-        // $line->FOODBRNDCD = $request->get("FOODBRNDCD");
-        // $line->FVS = $request->get("FVS");
-        // $line->ISFORTIFIED = $request->get("ISFORTIFIED");
-        // $line->VITA = $request->get("VITA");
-        // $line->IRON = $request->get("IRON");
-        // $line->OTHF = $request->get("OTHF");
-        // $line->MEALCD = $request->get("MEALCD");
-        // $line->RFCODE = $request->get("RFCODE");
-        // $line->FOODEX = $request->get("FOODEX");
-        // $line->FIC = Str::substr($request->get('FOODCODE'), 0, 4);
-        // $line->FOODCODE = $request->get("FOODCODE");
-        // $line->FOODWEIGHT = $request->get("FOODWEIGHT");
-        // $line->RCC = $request->get("RCC");
-        // $line->CMC = $request->get("CMC");
-        // $line->SUPCODE = $request->get("SUPCODE");
-        // $line->SRCCODE = $request->get("SRCCODE");
-        // $line->OTH_SRC = $request->get("OTH_SRC");
-        // $line->CPC = $request->get("CPC");
-        // $line->UNITCOST = $request->get("UNITCOST");
-        // $line->UNITWGT = $request->get("UNITWGT");
-        // $line->UNITMEAS = $request->get("UNITMEAS");
-        // $line->save();
 
         $data = $request->all();
 
-        if(count($request->LINENO) > 0)
-        {
-            foreach($request->LINENO as $input => $value)
-            {
-                $foodRecall = array(
-                'LINENO' => $request->LINENO[$input],
-                'FOOD_ITEM' => $request->FOOD_ITEM[$input],
-                'FOODDESC' => $request->FOODDESC[$input],
-                'FOODBRND' => $request->FOODBRND[$input],
-                'FOODMAINING' => $request->FOODMAINING[$input],
-                'FOODBRNDCD' => $request->FOODBRNDCD[$input],
-                'FVS' => $request->FVS[$input],
-                'ISFORTIFIED' => $request->ISFORTIFIED[$input],
-                'VITA' => $request->VITA[$input],
-                'IRON' => $request->IRON[$input],
-                'OTHF' => $request->OTHF[$input],
-                'MEALCD' => $request->MEALCD[$input],
-                'RFCODE' => $request->RFCODE[$input],
-                'FOODEX' => $request->FOODEX[$input],
-                'FIC' => Str::substr($request->FOODCODE[$input], 0, 4),
-                'FOODCODE' => $request->FOODCODE[$input],
-                'FOODWEIGHT' => $request->FOODWEIGHT[$input],
-                'RCC' => $request->RCC[$input],
-                'CMC' => $request->CMC[$input],
-                'SUPCODE' => $request->SUPCODE[$input],
-                'SRCCODE' => $request->SRCCODE[$input],
-                'OTH_SRC' => $request->OTH_SRC[$input],
-                'CPC' => $request->CPC[$input],
-                'UNITCOST' => $request->UNITCOST[$input],
-                'UNITWGT' => $request->UNITWGT[$input],
-                'UNITMEAS' => $request->UNITMEAS[$input],
-                );
+        $rowId = array_reverse($data['id']);
+        $lineNumber = array_reverse($data['LINENO']);
+        $foodItem = array_reverse($data['FOOD_ITEM']);
+        $foodDesc = array_reverse($data['FOODDESC']);
+        $foodBrand = array_reverse($data['FOODBRND']);
+        $mainIng = array_reverse($data['FOODMAINING']);
+        $foodBrandCode = array_reverse($data['FOODBRNDCD']);
+        $fvs = array_reverse($data['FVS']);
+        $isFortified = array_reverse($data['ISFORTIFIED']);
+        $vitA = array_reverse($data['VITA']);
+        $iron = array_reverse($data['IRON']);
+        $othF = array_reverse($data['OTHF']);
+        $mealCode = array_reverse($data['MEALCD']);
+        $rfCode = array_reverse($data['RFCODE']);
+        $foodEx = array_reverse($data['FOODEX']);
+        $foodCode = array_reverse($data['FOODCODE']);
+        $foodWeight = array_reverse($data['FOODWEIGHT']);
+        $rcc = array_reverse($data['RCC']);
+        $cmc = array_reverse($data['CMC']);
+        $supCode = array_reverse($data['SUPCODE']);
+        $srcCode = array_reverse($data['SRCCODE']);
+        $othSrc = array_reverse($data['OTH_SRC']);
+        $cpc = array_reverse($data['CPC']);
+        $unitCost = array_reverse($data['UNITCOST']);
+        $unitWeight = array_reverse($data['UNITWGT']);
+        $unit = array_reverse($data['UNITMEAS']);
 
-                Booklet10::where('id', $request->id[$input])->update($foodRecall);
+        if(count($lineNumber) > 0)
+        {
+            foreach($lineNumber as $input => $value)
+            {
+                $foodRecall = [
+                'LINENO' => $lineNumber[$input],
+                'FOOD_ITEM' => $foodItem[$input],
+                'FOODDESC' => $foodDesc[$input],
+                'FOODBRND' => $foodBrand[$input],
+                'FOODMAINING' => $mainIng[$input],
+                'FOODBRNDCD' => $foodBrandCode[$input],
+                'FVS' => $fvs[$input],
+                'ISFORTIFIED' => $isFortified[$input],
+                'VITA' => $vitA[$input],
+                'IRON' => $iron[$input],
+                'OTHF' => $othF[$input],
+                'MEALCD' => $mealCode[$input],
+                'RFCODE' => $rfCode[$input],
+                'FOODEX' => $foodEx[$input],
+                'FIC' => Str::substr($foodCode[$input], 0, 4),
+                'FOODCODE' => $foodCode[$input],
+                'FOODWEIGHT' => $foodWeight[$input],
+                'RCC' => $rcc[$input],
+                'CMC' => $cmc[$input],
+                'SUPCODE' => $supCode[$input],
+                'SRCCODE' => $srcCode[$input],
+                'OTH_SRC' => $othSrc[$input],
+                'CPC' => $cpc[$input],
+                'UNITCOST' => $unitCost[$input],
+                'UNITWGT' => $unitWeight[$input],
+                'UNITMEAS' => $unit[$input],
+                ];
+
+            
+                try {
+
+                    Booklet10::where('id', $rowId[$input])->update($foodRecall); 
+
+                } catch (Exception $error) {
+
+                    return redirect()->back()->with('error', 'Unable to update! Duplicate entry on line number ' .$lineNumber[$input]);
+
+                }
             }
         }
 
@@ -318,7 +295,10 @@ class FoodRecordController extends Controller
      }
 
 
-     public function updateLineOne(Request $request, $id)
+    /**
+     * update f72 food recall ref
+     */
+     public function updateFoodRecallRef(Request $request, $id)
     {
         $line = Booklet10::find($id);
         $line->status = $request->get("status");
@@ -333,41 +313,29 @@ class FoodRecordController extends Controller
      }
 
 
-   // Retrieve form 6.1 record //
-   public function membership($eacode, $hcn, $shsn)
-   {
+     /**
+     * Retrieve form 6.1 record
+     */
+    public function membership($eacode, $hcn, $shsn)
+    {
 
-    // $hhead = DB::table('d_f11')
-    //              ->select('SURNAME','GIVENNAME','AGE')
-    //              ->where('eacode','LIKE','%'.$eacode.'%')
-    //              ->where('hcn','LIKE','%'.$hcn.'%')
-    //              ->where('shsn','LIKE','%'.$shsn.'%')
-    //              ->where('MEMBER_CODE','=','01')
-    //              ->first();
-
-    $memberships = Members::where('eacode','LIKE','%'.$eacode.'%')
-                 ->where('hcn','LIKE','%'.$hcn.'%')
-                 ->where('shsn','LIKE','%'.$shsn.'%')
+    $memberships = Members::where('eacode', $eacode)
+                 ->where('hcn', $hcn)
+                 ->where('shsn', $shsn)
                  ->orderBy('MEMBER_CODE', 'ASC')
                  ->get();
 
-    $f60 = F60::where('eacode','LIKE','%'.$eacode.'%')
-                 ->where('hcn','LIKE','%'.$hcn.'%')
-                 ->where('shsn','LIKE','%'.$shsn.'%')
+    $f60 = F60::where('eacode', $eacode)
+                 ->where('hcn', $hcn)
+                 ->where('shsn', $shsn)
                  ->get();
 
-    return view('dashboard.membership', compact('eacode','hcn','shsn', 'memberships', 'f60'));
+    return view('food-record.membership', compact('eacode','hcn','shsn', 'memberships', 'f60'));
     }
 
 
-    // Update Membership F60 //
-
     /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * Update f60 record
      */
     public function updatef60(Request $request, $id)
     {
@@ -382,28 +350,25 @@ class FoodRecordController extends Controller
         $line->save();
 
         return redirect()->back()->with('success', 'Data successfully updated');
-        
+
      }
 
 
 
-    // Retrieve Form 6.1 data for edit //
-    public function membershipedit($eacode, $hcn, $shsn, $memcode, $id)
+    /**
+     * form 61 edit page
+     */
+    public function membershipEdit($eacode, $hcn, $shsn, $memcode, $id)
     {
         $member = Members::find ($id);
-        return view('dashboard.membership_edit', compact('id','eacode','hcn','shsn','memcode', 'member'));
+        return view('food-record.membership-edit', compact('id','eacode','hcn','shsn','memcode', 'member'));
     }
 
-        // Update Membership Form 6.1 //
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * update form 61
      */
-    public function updatemembership(Request $request, $id)
+    public function updateMembership(Request $request, $id)
     {
         $member = Members::find($id);
         $member->MEMBER_CODE = $request->get("MEMBER_CODE");
@@ -426,130 +391,111 @@ class FoodRecordController extends Controller
      }
 
 
-     // Retrieve Form 6.3 data for edit //
+     /**
+     * form 63
+     */
     public function record($eacode, $hcn, $shsn)
     {
-        $fct = DB::table('xfctx2017')->select('foodcode', 'fooddesc')->get();
+        $fct = DB::table('fct')->select('foodcode', 'fooddesc')->get();
 
-        // $hhead = DB::table('d_f11')
-        //          ->select('SURNAME','GIVENNAME','AGE')
-        //          ->where('eacode','LIKE','%'.$eacode.'%')
-        //          ->where('hcn','LIKE','%'.$hcn.'%')
-        //          ->where('shsn','LIKE','%'.$shsn.'%')
-        //          ->where('MEMBER_CODE','=','01')
-        //          ->first();
-
-        $records = Booklet9::where('eacode','LIKE','%'.$eacode.'%')
-                 ->where('hcn','LIKE','%'.$hcn.'%')
-                 ->where('shsn','LIKE','%'.$shsn.'%')
+        $records = Booklet9::where('eacode', $eacode)
+                 ->where('hcn', $hcn)
+                 ->where('shsn', $shsn)
                  ->orderByRaw('LENGTH(LINENO)', 'ASC')
                  ->orderBy('LINENO', 'ASC')
                  ->get();
 
-        return view('dashboard.food_record_edit', compact('eacode','hcn','shsn','records','fct'));
+        return view('food-record.food-record-edit', compact('eacode','hcn','shsn','records','fct'));
     }
 
 
-    // Retrieve Food record  line no data for edit //
-    public function editrecord($eacode, $hcn, $shsn, $id)
-    {
-        $fct = DB::table('xfctx2017')->select('foodcode', 'fooddesc')->get();
-        $line = Booklet9::find ($id);
-        return view('dashboard.edit_record', compact('fct','line','id', 'eacode','hcn','shsn'));
-    }
-
-
-    // Update Membership Form 6.3 //
-
-  /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+    /**
+     * update form 63 for specific household
      */
-    public function updatefoodrecord(Request $request, $id)
+    public function updateFoodRecord(Request $request, $id)
     {
-
-        // $record = Booklet9::find($id);
-        // $record->LINENO = $request->get('LINENO');
-        // $record->FOODITEM = $request->get('FOODITEM');
-        // $record->DESCRIPTION = $request->get('DESCRIPTION');
-        // $record->BRANDNAME = $request->get('BRANDNAME');
-        // $record->MAINIGNT = $request->get('MAINIGNT');
-        // $record->BRANDCODE = $request->get('BRANDCODE');
-        // $record->MEALCD = $request->get('MEALCD');
-        // $record->WRCODE = $request->get('WRCODE');
-        // $record->RFCODE = $request->get('RFCODE');
-        // $record->FOODEX = $request->get('FOODEX');
-        // $record->FOODCODE = Str::substr($request->get('FOODDESC'), 0, 4);
-        // $record->FOODDESC = $request->get('FOODDESC');
-        // $record->FOODWEIGHT = $request->get('FOODWEIGHT');
-        // $record->RCC = $request->get('RCC');
-        // $record->CMC = $request->get('CMC');
-        // $record->SUPCODE = $request->get('SUPCODE');
-        // $record->SRCCODE = $request->get('SRCCODE');
-        // $record->OTH_SRC = $request->get('OTH_SRC');
-        // $record->PW_WGT = $request->get('PW_WGT');
-        // $record->PW_RCC = $request->get('PW_RCC');
-        // $record->PW_CMC = $request->get('PW_CMC');
-        // $record->PURCODE = $request->get('PURCODE');
-        // $record->GO_WGT = $request->get('GO_WGT');
-        // $record->GO_RCC = $request->get('GO_RCC');
-        // $record->GO_CMC = $request->get('GO_CMC');
-        // $record->LO_WGT = $request->get('LO_WGT');
-        // $record->LO_RCC = $request->get('LO_RCC');
-        // $record->LO_CMC = $request->get('LO_CMC');
-        // $record->UNITCOST = $request->get('UNITCOST');
-        // $record->UNITWGT = $request->get('UNITWGT');
-        // $record->UNIT = $request->get('UNIT');
-        // $record->save();
-
-
-        // return redirect()->back()->with('success', 'Data successfully updated');
-
 
         $data = $request->all();
 
-        if(count($request->LINENO) > 0)
+        $rowId = array_reverse($data['id']);
+        $lineNumber = array_reverse($data['LINENO']);
+        $foodItem = array_reverse($data['FOODITEM']);
+        $description = array_reverse($data['DESCRIPTION']);
+        $brandName = array_reverse($data['BRANDNAME']);
+        $mainIng = array_reverse($data['MAINIGNT']);
+        $brandCode = array_reverse($data['BRANDCODE']);
+        $mealCode = array_reverse($data['MEALCD']);
+        $wrCode = array_reverse($data['WRCODE']);
+        $rfCode = array_reverse($data['RFCODE']);
+        $foodEx = array_reverse($data['FOODEX']);
+        $foodDesc = array_reverse($data['FOODDESC']);
+        $foodWeight = array_reverse($data['FOODWEIGHT']);
+        $rcc = array_reverse($data['RCC']);
+        $cmc = array_reverse($data['CMC']);
+        $supCode = array_reverse($data['SUPCODE']);
+        $srcCode = array_reverse($data['SRCCODE']);
+        $othSrc = array_reverse($data['OTH_SRC']);
+        $pwWeight = array_reverse($data['PW_WGT']);
+        $pwRcc = array_reverse($data['PW_RCC']);
+        $pwCmc = array_reverse($data['PW_CMC']);
+        $purCode = array_reverse($data['PURCODE']);
+        $goWeight = array_reverse($data['GO_WGT']);
+        $goRcc = array_reverse($data['GO_RCC']);
+        $goCmc = array_reverse($data['GO_CMC']);
+        $loWeight = array_reverse($data['LO_WGT']);
+        $loRcc = array_reverse($data['LO_RCC']);
+        $loCmc = array_reverse($data['LO_CMC']);
+        $unitCost = array_reverse($data['UNITCOST']);
+        $unitWeight = array_reverse($data['UNITWGT']);
+        $unit = array_reverse($data['UNIT']);
+
+        if(count($lineNumber) > 0)
         {
-            foreach($request->LINENO as $input => $value)
+            foreach($lineNumber as $input => $value)
             {
                 $foodRecord = array(
-                    'LINENO' => $request->LINENO[$input],
-                    'FOODITEM' => $request->FOODITEM[$input],
-                    'DESCRIPTION' => $request->DESCRIPTION[$input],
-                    'BRANDNAME' => $request->BRANDNAME[$input],
-                    'MAINIGNT' => $request->MAINIGNT[$input],
-                    'BRANDCODE' => $request->BRANDCODE[$input],
-                    'MEALCD' => $request->MEALCD[$input],
-                    'WRCODE' => $request->WRCODE[$input],
-                    'RFCODE' => $request->RFCODE[$input],
-                    'FOODEX' => $request->FOODEX[$input],
-                    'FOODCODE' => Str::substr($request->FOODDESC[$input], 0, 4),
-                    'FOODDESC' => $request->FOODDESC[$input],
-                    'FOODWEIGHT' => $request->FOODWEIGHT[$input],
-                    'RCC' => $request->RCC[$input],
-                    'CMC' => $request->CMC[$input],
-                    'SUPCODE' => $request->SUPCODE[$input],
-                    'SRCCODE' => $request->SRCCODE[$input],
-                    'OTH_SRC' => $request->OTH_SRC[$input],
-                    'PW_WGT' => $request->PW_WGT[$input],
-                    'PW_RCC' => $request->PW_RCC[$input],
-                    'PW_CMC' => $request->PW_CMC[$input],
-                    'PURCODE' => $request->PURCODE[$input],
-                    'GO_WGT' => $request->GO_WGT[$input],
-                    'GO_RCC' => $request->GO_RCC[$input],
-                    'GO_CMC' => $request->GO_CMC[$input],
-                    'LO_WGT' => $request->LO_WGT[$input],
-                    'LO_RCC' => $request->LO_RCC[$input],
-                    'LO_CMC' => $request->LO_CMC[$input],
-                    'UNITCOST' => $request->UNITCOST[$input],
-                    'UNITWGT' => $request->UNITWGT[$input],
-                    'UNIT' => $request->UNIT[$input],
+                    'LINENO' => $lineNumber[$input],
+                    'FOODITEM' => $foodItem[$input],
+                    'DESCRIPTION' => $description[$input],
+                    'BRANDNAME' => $brandName[$input],
+                    'MAINIGNT' => $mainIng[$input],
+                    'BRANDCODE' => $brandCode[$input],
+                    'MEALCD' => $mealCode[$input],
+                    'WRCODE' => $wrCode[$input],
+                    'RFCODE' => $rfCode[$input],
+                    'FOODEX' => $foodEx[$input],
+                    'FOODCODE' => Str::substr($foodDesc[$input], 0, 4),
+                    'FOODDESC' => $foodDesc[$input],
+                    'FOODWEIGHT' => $foodWeight[$input],
+                    'RCC' => $rcc[$input],
+                    'CMC' => $cmc[$input],
+                    'SUPCODE' => $supCode[$input],
+                    'SRCCODE' => $srcCode[$input],
+                    'OTH_SRC' => $othSrc[$input],
+                    'PW_WGT' => $pwWeight[$input],
+                    'PW_RCC' => $pwRcc[$input],
+                    'PW_CMC' => $pwCmc[$input],
+                    'PURCODE' => $purCode[$input],
+                    'GO_WGT' => $goWeight[$input],
+                    'GO_RCC' => $goRcc[$input],
+                    'GO_CMC' => $goCmc[$input],
+                    'LO_WGT' => $loWeight[$input],
+                    'LO_RCC' => $loRcc[$input],
+                    'LO_CMC' => $loCmc[$input],
+                    'UNITCOST' => $unitCost[$input],
+                    'UNITWGT' => $unitWeight[$input],
+                    'UNIT' => $unit[$input],
                 );
 
-                Booklet9::where('id', $request->id[$input])->update($foodRecord);
+                try {
+
+                    Booklet9::where('id', $rowId[$input])->update($foodRecord); 
+
+                } catch (Exception $error) {
+
+                    return redirect()->back()->with('error', 'Unable to update! Duplicate entry on line number ' .$lineNumber[$input]);
+
+                }
             }
         }
 
@@ -558,115 +504,66 @@ class FoodRecordController extends Controller
      }
 
 
-     // Insert Food record  line no data for edit //
+    /**
+    * insert food record data page
+    */
     public function insertFoodRecord($eacode, $hcn, $shsn)
     {
-        $fct = DB::table('xfctx2017')->select('foodcode', 'fooddesc')->get();
-        return view('dashboard.insert_food_record', compact('fct','eacode','hcn','shsn'));
+        $fct = DB::table('fct')->select('foodcode', 'fooddesc')->get();
+
+        return view('food-record.insert-food-record', compact('fct','eacode','hcn','shsn'));
     }
 
 
     public function addRecord(Request $request)
     {
       
-        $record = new Booklet9;
-        $record->eacode = $request->get('eacode');
-        $record->hcn = $request->get('hcn');
-        $record->shsn = $request->get('shsn');
-        $record->LINENO = $request->get('LINENO');
-        $record->FOODITEM = $request->get('FOODITEM');
-        $record->DESCRIPTION = $request->get('DESCRIPTION');
-        $record->BRANDNAME = $request->get('BRANDNAME');
-        $record->MAINIGNT = $request->get('MAINIGNT');
-        $record->BRANDCODE = $request->get('BRANDCODE');
-        $record->MEALCD = $request->get('MEALCD');
-        $record->WRCODE = $request->get('WRCODE');
-        $record->RFCODE = $request->get('RFCODE');
-        $record->FOODEX = $request->get('FOODEX');
-        $record->FOODCODE = Str::substr($request->get('FOODDESC'), 0, 4);
-        $record->FOODDESC = $request->get('FOODDESC');
-        $record->FOODWEIGHT = $request->get('FOODWEIGHT');
-        $record->RCC = $request->get('RCC');
-        $record->CMC = $request->get('CMC');
-        $record->SUPCODE = $request->get('SUPCODE');
-        $record->SRCCODE = $request->get('SRCCODE');
-        $record->OTH_SRC = $request->get('OTH_SRC');
-        $record->PW_WGT = $request->get('PW_WGT');
-        $record->PW_RCC = $request->get('PW_RCC');
-        $record->PW_CMC = $request->get('PW_CMC');
-        $record->PURCODE = $request->get('PURCODE');
-        $record->GO_WGT = $request->get('GO_WGT');
-        $record->GO_RCC = $request->get('GO_RCC');
-        $record->GO_CMC = $request->get('GO_CMC');
-        $record->LO_WGT = $request->get('LO_WGT');
-        $record->LO_RCC = $request->get('LO_RCC');
-        $record->LO_CMC = $request->get('LO_CMC');
-        $record->UNITCOST = $request->get('UNITCOST');
-        $record->UNITWGT = $request->get('UNITWGT');
-        $record->UNIT = $request->get('UNIT');
-        $record->save();
+        $foodRecord = [
+            'eacode' => $request['eacode'],
+            'hcn' => $request['hcn'],
+            'shsn' => $request['shsn'],
+            'LINENO' => $request['LINENO'],
+            'FOODITEM' => $request['FOODITEM'],
+            'DESCRIPTION' => $request['DESCRIPTION'],
+            'BRANDNAME' => $request['BRANDNAME'],
+            'MAINIGNT' => $request['MAINIGNT'],
+            'BRANDCODE' => $request['BRANDCODE'],
+            'MEALCD' => $request['MEALCD'],
+            'WRCODE' => $request['WRCODE'],
+            'RFCODE' => $request['RFCODE'],
+            'FOODEX' => $request['FOODEX'],
+            'FOODCODE' => Str::substr($request['FOODDESC'], 0, 4),
+            'FOODDESC' => $request['FOODDESC'],
+            'FOODWEIGHT' => $request['FOODWEIGHT'],
+            'RCC' => $request['RCC'],
+            'CMC' => $request['CMC'],
+            'SUPCODE' => $request['SUPCODE'],
+            'SRCCODE' => $request['SRCCODE'],
+            'OTH_SRC' => $request['OTH_SRC'],
+            'PW_WGT' => $request['PW_WGT'],
+            'PW_RCC' => $request['PW_RCC'],
+            'PW_CMC' => $request['PW_CMC'],
+            'PURCODE' => $request['PURCODE'],
+            'GO_WGT' => $request['GO_WGT'],
+            'GO_RCC' => $request['GO_RCC'],
+            'GO_CMC' => $request['GO_CMC'],
+            'LO_WGT' => $request['LO_WGT'],
+            'LO_RCC' => $request['LO_RCC'],
+            'LO_CMC' => $request['LO_CMC'],
+            'UNITCOST' => $request['UNITCOST'],
+            'UNITWGT' => $request['UNITWGT'],
+            'UNIT' => $request['UNIT'],
+        ];
 
-      return redirect()->back()->with('success', 'Data successfully inserted');
+        Booklet9::insertIgnore($foodRecord);
+
+        return redirect()->back()->with('success', 'Data successfully inserted');
     }
 
-
-    public function count(Request $request) 
-    {
-
-        $today = Carbon::now()->toDateString();
-
-        $count = DB::table('localsurveyareas_2018') ->get(['eacode','areaname']);
-                // ->join('localsurveyareas_2018', function ($join) {
-                //     $join->on('localsurveyareas_2018.eacode', '=', 'd_f71.eacode');
-                // })
-                // ->distinct()
-                // ->orderBy('d_f71.eacode', 'ASC')
-               
-
-        $filename = "Count Report $today.csv";
-        $handle = fopen($filename, 'w+');
-        fputcsv($handle, array('FNO', 'EACODE', 'AREANAME','HOUSEHOLD COUNTs', 'INDIVIDUAL COUNTs', 'ACTUAL COUNTs'));
-
-        foreach($count as $row) {
-
-            $eacode = $row->eacode;
-
-            $fno = FNO::where('AREACODE','=', $eacode)->pluck('FOLDERNO')->first();
-
-            $hh = DB::table('d_f63')
-                    ->where('eacode', '=',$eacode)
-                    ->distinct()
-                    ->get(['eacode','hcn','shsn'])->count();
-
-            $counts = DB::table('d_f71')
-                    ->where('eacode', '=',$eacode)
-                    ->distinct()
-                    ->get(['eacode','hcn','shsn','MEMBER_CODE'])->count();
-             
-
-            fputcsv($handle, array($fno ,$eacode, $row->areaname, $hh , $counts ));
-        }
-
-        fclose($handle);
-
-        $headers = array(
-            'Content-Type' => 'csv',
-        );
-        
-
-        return Response::download($filename, "Count Report  $today.csv", $headers)->deleteFileAfterSend(true);        
-
-    }
-
-
-    // Insert Form 6.1 visitor  line no //
 
     /**
-     * Update the specified resource in storage.
+     * Insert Form 6.1 visitor
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
      */
     public function insertVisitor(Request $request)
     {
@@ -693,5 +590,6 @@ class FoodRecordController extends Controller
         return redirect()->back()->with('success', 'Data successfully inserted');
         
      }
+
 }
 
