@@ -18,6 +18,11 @@
 Route::get('/', 'ConnectionController@connection')->name('home');
 
 
+/**
+ * Create user Controller
+ */
+Route::get('/create/user', 'CreateUserController@createUser')->name('create.user');
+
 
 /**
  * Authentication controller

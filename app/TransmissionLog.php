@@ -3,9 +3,16 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Staudenmeir\LaravelUpsert\Eloquent\HasUpsertQueries;
 
 class TransmissionLog extends Model
 {
+    use HasUpsertQueries;
+
+    
+    protected $connection = 'mysqltrd';
+
+
     /**
      * Name of the table.
      *
@@ -23,6 +30,7 @@ class TransmissionLog extends Model
         'eacode',
         'hcn',
         'shsn',
+        'trans_cat',
         'full_name',
         'f60_count',
         'f61_count',

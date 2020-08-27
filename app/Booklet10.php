@@ -65,8 +65,22 @@ class Booklet10 extends Model
     'updated_at'
     );
 
-  public function scopeExclude($query,$value = array()) 
-   {
+  public function scopeExclude($query,$value = array()) {
+
     return $query->select( array_diff( $this->columns,(array) $value) );
-   }
+    
+  }
+
+
+   public function getTheForm71PerEacode($eacode, $hcn, $shsn){
+
+    return $this->where('eacode', $eacode)
+            ->where('hcn', $hcn)
+            ->where('shsn', $shsn)
+            ->distinct()
+            ->get(['eacode','hcn','shsn', 'MEMBER_CODE'])
+            ->count();
+
+  }
+
 }

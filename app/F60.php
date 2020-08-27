@@ -12,7 +12,8 @@ class F60 extends Model
     
     protected $table = 'd_f60';
 
-     /**
+    
+    /**
     * Exclude method
     * 
     * 

@@ -96,4 +96,19 @@ class Booklet9 extends Model
     {
         return $query->select( array_diff( $this->columns,(array) $value) );
     }
+
+
+    public function getTheForm63PerEacode($eacode, $hcn, $shsn){
+
+        $hasData = $this->where('eacode', $eacode)
+                ->where('hcn', $hcn)
+                ->where('shsn', $shsn)
+                ->first();
+
+        if($hasData) {
+            return 1;
+        }
+
+        return 0;
+    }
 }
