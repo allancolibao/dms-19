@@ -105,7 +105,9 @@ class GetDataController extends Controller
 
  
         $f63 = Booklet9::on('mysqlsec')->where('eacode',$eacode)->exclude('id')->get()->toArray();
-        $insertF63 = Booklet9::insertIgnore($f63);
+        foreach (array_chunk($f63,1000) as $dataf63)  {
+            $insertF63 = Booklet9::insertIgnore($dataf63);
+        }
 
         return redirect()->route('get.data.redirect', [$eacode])->with('success', 'Data successfully downloaded!');
 
@@ -130,8 +132,11 @@ class GetDataController extends Controller
         // Get data from server and insert on local database ( per form ) 
 
         $f71 = Booklet10::on('mysqlsec')->where('eacode', $eacode)->exclude('id')->get()->toArray();
-        $insertF71 = Booklet10::insertIgnore($f71);
 
+        foreach (array_chunk($f71,1000) as $dataf71)  {
+            $insertF71 = Booklet10::insertIgnore($dataf71);
+        }
+       
         $f76 = F76::on('mysqlsec')->where('eacode', $eacode)->exclude('id')->get()->toArray();
         $insertF76 = F76::insertIgnore($f76);
 
@@ -165,11 +170,15 @@ class GetDataController extends Controller
 
  
         $f63 = Booklet9::on('mysqlsec')->where('eacode',$eacode)->exclude('id')->get()->toArray();
-        $insertF63 = Booklet9::insertIgnore($f63);
-
+        foreach (array_chunk($f63,1000) as $dataf63)  {
+            $insertF63 = Booklet9::insertIgnore($dataf63);
+        }
 
         $f71 = Booklet10::on('mysqlsec')->where('eacode', $eacode)->exclude('id')->get()->toArray();
-        $insertF71 = Booklet10::insertIgnore($f71);
+        foreach (array_chunk($f71,1000) as $dataf71)  {
+            $insertF71 = Booklet10::insertIgnore($dataf71);
+        }
+        
 
         $f76 = F76::on('mysqlsec')->where('eacode', $eacode)->exclude('id')->get()->toArray();
         $insertF76 = F76::insertIgnore($f76);
