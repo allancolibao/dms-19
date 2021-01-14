@@ -36,10 +36,16 @@
                                             <thead>
                                                 <tr>
                                                     <th style="background:#858585;" colspan="1"></th>
-                                                    <th style="background:#e6e6e6; color: #2a2a2b;" colspan="3">SEND DATA PER CATEGORY</th>
+                                                    <th style="background:#e6e6e6; color: #2a2a2b;" colspan="4">CATEGORY</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style="background:#858585;" colspan="1"></th>
+                                                    <th style="background:#ff3f79; color: #ffffff;">PER</th>
+                                                    <th style="background:#4ec9ae; color: #ffffff;" colspan="3">WHOLE</th>
                                                 </tr>
                                                 <tr>
                                                     <th>AREA NAME</th>
+                                                    <th>PER HOUSEHOLD</th>
                                                     <th>HOUSEHOLD</th>
                                                     <th>INDIVIDUALS</th>
                                                     <th>ALL</th>
@@ -50,11 +56,16 @@
                                                 <tr>
                                                     <td>{{ $value->eacode }} - {{ $value->areaname }}</td>
                                                     <td>  
+                                                        <button data-path="{{ route('per.household', ['eacode'=>$value->eacode])}}" style="background:#fd145a;" class="btn btn-secondary open-modal">
+                                                                VIEW LIST
+                                                        </button>
+                                                    </td>
+                                                    <td>  
                                                         <a href="{{ route('trans.hh', ['eacode'=>$value->eacode])}}">
-                                                                <button type="submit" style="background:#aa26af;" class="btn btn-secondary send">
-                                                                    <i class="pe-7s-plane"></i> SEND
-                                                                </button>
-                                                            </a>
+                                                            <button type="submit" style="background:#aa26af;" class="btn btn-secondary send">
+                                                                <i class="pe-7s-plane"></i> SEND
+                                                            </button>
+                                                        </a>
                                                     </td>
 
                                                     <td>  

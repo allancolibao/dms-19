@@ -146,7 +146,7 @@
 
     <!-- Modal -->
     <script src="{{ asset('js/open-modal.js') }}"></script>
-
+    
 </body>
 </html>
 

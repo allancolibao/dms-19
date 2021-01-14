@@ -95,8 +95,12 @@ Route::group(['middleware' => ['auth']], function() {
     Route::get('trans/indiv/{eacode}', 'DataTransmissionController@transIndividual')->name('trans.indiv');
     Route::get('trans/all/{eacode}', 'DataTransmissionController@transAll')->name('trans.all');
 
+    Route::get('trans/per-hh/{eacode}', 'DataTransmissionController@perHousehold')->name('per.household');
+    Route::get('trans/per-hh/send/{eacode}/{hcn}/{shsn}', 'DataTransmissionController@transPerHousehold')->name('per.household-send');
+
 
     /**
+     * 
      * get data
      */
     Route::get('get', 'GetDataController@index')->name('get');

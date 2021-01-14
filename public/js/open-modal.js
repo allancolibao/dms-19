@@ -1,4 +1,4 @@
-$('.open-modal').click(function (event) {
+$('.open-modal').on('click', function (event) {
     event.preventDefault();
     $.ajax({
         url: $(this).data('path'),

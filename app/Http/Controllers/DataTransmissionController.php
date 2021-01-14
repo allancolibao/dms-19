@@ -446,4 +446,41 @@ class DataTransmissionController extends Controller
         return redirect()->route('get.trans-redirect', [$eacode])->with('error', 'Oooops! Please enter a valid EACODE. 😥');
     }
 
+
+    /**
+     * 
+     * View list of All Household
+     * 
+     */
+    public function perHousehold($eacode)
+    { 
+
+        $households = Encoding::where('eacode', 'LIKE','%'.$eacode.'%')
+                        ->distinct()
+                        ->get(['eacode','hcn','shsn']);
+
+        return view('trans.per-household', compact('households'));
+    }
+
+
+    /**
+     * 
+     * Send data per household
+     * 
+     */
+    public function transPerHousehold($eacode, $hcn, $shsn)
+    { 
+
+        // $households = Encoding::where('eacode', 'LIKE','%'.$eacode.'%')
+        //                 ->distinct()
+        //                 ->get(['eacode','hcn','shsn']);
+
+        return response()->json(['success'=>  ''.$eacode.' '.$hcn.' '.$shsn.'']);
+    }
+
 }
+
+
+
+
+
