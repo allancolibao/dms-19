@@ -475,7 +475,7 @@ class DataTransmissionController extends Controller
         //                 ->distinct()
         //                 ->get(['eacode','hcn','shsn']);
 
-        return response()->json(['success'=>  ''.$eacode.' '.$hcn.' '.$shsn.'']);
+        return response()->json(['success'=>  ''.$eacode.''.$hcn.''.$shsn.'']);
     }
 
 }

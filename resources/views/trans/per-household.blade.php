@@ -24,7 +24,7 @@
                                     <td>{{ $value->shsn }}</td>
                                     <td>  
                                         <button data-url="{{ route('per.household-send', ['eacode'=>$value->eacode, 'hcn'=>$value->hcn, 'shsn'=>$value->shsn])}}" class="btn btn-secondary per-household" style="background:#fd145a;">
-                                            <i class="pe-7s-plane"></i> SEND
+                                            <span class="spinner-btn" style="display:none;" id="{{ $value->eacode.''.$value->hcn.''.$value->shsn }}"></span> SEND
                                         </button>
                                     </td>
                                 </tr>
@@ -34,14 +34,6 @@
                 </div>
             </div>
         </div> 
-        {{-- Loading Spinner --}}
-        <div id="loading" class="overlay" style="display:none">
-            <div class="overlay__inner">
-                <div class="overlay__content">
-                    <span class="spinner"></span>
-                </div>
-            </div>
-        </div>
         @else
         <div class="col-md-12">
                 <div class="card">
@@ -58,25 +50,24 @@
 @endif
 
 
-
-
 <script>
     $('.per-household').on('click', function (event) {
         event.preventDefault();
 
-        $("#loading").removeAttr('style');
-
         $.ajax({
             url: $(this).data('url'),
             success: function (response) {
-                console.log(response)
+
+                $(`#${response.success}`).removeAttr('style');
 
                 setTimeout(()=> {
-                    $("#loading").attr('style', 'display:none');
-                }, 2000)
+                    $(`#${response.success}`).attr('style', 'display:none');
+                }, 3000)
                 
             }
         });
         return false;
     });
 </script>
+
+
