@@ -23,8 +23,8 @@
                                     <td>{{ $value->hcn }}</td>
                                     <td>{{ $value->shsn }}</td>
                                     <td>  
-                                        <button data-url="{{ route('per.household-send', ['eacode'=>$value->eacode, 'hcn'=>$value->hcn, 'shsn'=>$value->shsn])}}" class="btn btn-secondary per-household" style="background:#fd145a;">
-                                            <span class="spinner-btn" style="display:none;" id="{{ $value->eacode.''.$value->hcn.''.$value->shsn }}"></span> SEND
+                                        <button data-url="{{ route('per.household-send', ['eacode'=>$value->eacode, 'hcn'=>$value->hcn, 'shsn'=>$value->shsn])}}" class="btn btn-secondary per-household" style="background:#2248c5;" id="{{ $value->eacode.''.$value->hcn.''.$value->shsn }}">
+                                            SEND
                                         </button>
                                     </td>
                                 </tr>
@@ -58,10 +58,11 @@
             url: $(this).data('url'),
             success: function (response) {
 
-                $(`#${response.success}`).removeAttr('style');
+                $(`#${response.ID}`).html('SENDING...');
 
                 setTimeout(()=> {
-                    $(`#${response.success}`).attr('style', 'display:none');
+                    $(`#${response.ID}`).removeAttr('style');
+                    $(`#${response.ID}`).html('SENT...');
                 }, 3000)
                 
             }
