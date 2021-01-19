@@ -36,6 +36,8 @@ class DataTransmissionController extends Controller
             return false;
         }
         return true;
+
+        fclose($connected);
     }
 
     /**
