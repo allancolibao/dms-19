@@ -59,6 +59,9 @@
                                     </ul>
                                 </li>
                             @endguest
+                            <li>
+                                <p class="text-muted"><small>version 1.0.2</small></p>
+                            </li>
                         </ul>
                         
                     </div>

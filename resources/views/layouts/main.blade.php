@@ -83,7 +83,7 @@
                                 </div>
                             </li>  
                             <li class="nav-item">
-                                <p class="text-muted" style="padding-right:5vmin; padding-top:2vmin;">Version 1.0.1</p>
+                                <p class="text-muted" style="padding-right:5vmin; padding-top:2vmin;">version 1.0.2</p>
                             </li>
                             <li class="dropdown">
                                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" v-pre>

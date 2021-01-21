@@ -37,6 +37,7 @@
                     <a class="navbar-brand" href="{{ url('/') }}">
                         {{ config('app.name', 'DVMS-2019') }}
                     </a>
+                    <p class="text-muted">version 1.0.2</p>
                 </div>
             </div>
         </nav>
